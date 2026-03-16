@@ -1,6 +1,6 @@
 """
 football_data.py
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~R
 Fetches data from the Football-Data.org API and builds a SQLite relational
 database with three tables:
 
@@ -27,6 +27,7 @@ API reference: https://www.football-data.org/documentation/quickstart
 import argparse
 import logging
 import os
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
@@ -40,6 +41,24 @@ BASE_URL = "https://api.football-data.org/v4"
 
 # Default competition codes to fetch.  These are available on the free tier.
 DEFAULT_COMPETITIONS = ["PL", "PD", "BL1", "SA", "FL1", "CL"]
+
+
+def load_dotenv(dotenv_path: str = ".env") -> None:
+    """Load KEY=VALUE pairs from a .env file into os.environ."""
+    env_file = Path(dotenv_path)
+    if not env_file.is_file():
+        return
+
+    for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 # ---------------------------------------------------------------------------
@@ -250,6 +269,8 @@ def build_database(
 
 
 def main() -> None:
+    load_dotenv()
+
     parser = argparse.ArgumentParser(
         description="Fetch Football-Data.org data and build a SQLite database."
     )
@@ -269,7 +290,7 @@ def main() -> None:
     api_key = os.environ.get("FOOTBALL_API_KEY", "")
     if not api_key:
         parser.error(
-            "Set the FOOTBALL_API_KEY environment variable to your Football-Data.org token."
+            "Set FOOTBALL_API_KEY in your environment or in .env."
         )
 
     build_database(api_key, args.competitions, args.db)
